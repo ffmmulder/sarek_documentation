@@ -259,7 +259,7 @@ to:
 (pairBamManta, pairBamStrelka, pairBamStrelkaBP, pairBamMsisensor, pairBamCNVkit, pairBamControlFREEC, pairBam) = pairBam.into(7)
 ```
 
-Line 3128-3189: Remove the entire section (starting from //STEP MPILEUP.1 up to but not including // STEP CONTROLFREEC.1 - CONTROLFREEC):
+Line 3083-3189: Remove the entire section (starting from //STEP MPILEUP.1 up to but not including // STEP CONTROLFREEC.1 - CONTROLFREEC):
 ```
 // STEP MPILEUP.1
 
@@ -518,11 +518,11 @@ add the following line:
 
 and replace the line:
 ```
-      ${GLR} \
+      --germline-resource ${germlineResource} \
 ```
 with:
 ```
-      --germline-resource ${germlineResource} \
+      ${GLR} \
 ```
 ## Available tools
 * ASCAT<br>
