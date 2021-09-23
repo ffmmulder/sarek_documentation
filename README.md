@@ -12,14 +12,14 @@ https://nf-co.re/sarek
 2. [Install Singularity](#install-singularity)
 3. [Pull or Clone Sarek](#pull-or-clone-sarek)
 4. [Get & configure resources](#get-and-configure-resources)
-5. Configure Nextflow
-6. Configure processes
-7. Modify code
+5. [Configure Nextflow](#configure-nextflow)
+6. [Configure processes](#configure-processes)
+7. [Modify code](#modify-code)
 8. [Available tools](#available-tools)
 
 ## Install Nextflow
 
-Install the latest version of Nextfow (v20.10+ is needed for the latest v2.7.1 sarek release) using the [these instructions](https://www.nextflow.io/docs/latest/getstarted.html#installation)
+Install the latest version of Nextfow (v20.40+ is needed for the latest v2.7.1 sarek release) using the [these instructions](https://www.nextflow.io/docs/latest/getstarted.html#installation)
 
 ## Install Singularity
 
@@ -39,16 +39,9 @@ The default reference genome source for Sarek is [Illumina's iGenomes](https://s
 
 It is also possible to use specific local genome resources.
 
-### Downloading reference genome directly (GRCh37 example)
-
-Download the reference genome of choice from [https://support.illumina.com/sequencing/sequencing_software/igenome.html](https://support.illumina.com/sequencing/sequencing_software/igenome.html) and extract the downloaded archive
-
-```
-wget http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/Ensembl/GRCh37/Homo_sapiens_Ensembl_GRCh37.tar.gz
-tar -xzvf Homo_sapiens_Ensembl_GRCh37.tar.gz
-```
-
 ### Downloading reference genome using AWS (GRCh37 example)
+
+This way is the preferred way as the sarek igenomes.config is based on these genomes, when using custom genomes one has to modify the genomes.config file (found in the conf/ subfolder from sarek) accordingly.<br>
 
 Download the reference genome of choice from https://ewels.github.io/AWS-iGenomes/<br><br>
 For Genome -> Source -> Build -> Type choose:<br>
@@ -70,6 +63,25 @@ Download selected genome (using the specified Sync command
 aws s3 --no-sign-request --region eu-west-1 sync s3://ngi-igenomes/igenomes/Homo_sapiens/GATK/GRCh37/ ./Homo_sapiens/GATK/GRCh37
 ```
 
+The following commands can be used to download the relevant mouse genome data:
+```
+aws s3 --no-sign-request --region eu-west-1 sync s3://ngi-igenomes/igenomes/Mus_musculus/Ensembl/GRCm38/Sequence/BWAIndex/ ./Mus_musculus/Ensembl/GRCm38/Sequence/BWAIndex/
+aws s3 --no-sign-request --region eu-west-1 sync s3://ngi-igenomes/igenomes/Mus_musculus/Ensembl/GRCm38/Sequence/Chromosomes/ ./Mus_musculus/Ensembl/GRCm38/Sequence/Chromosomes/
+aws s3 --no-sign-request --region eu-west-1 sync s3://ngi-igenomes/igenomes/Mus_musculus/Ensembl/GRCm38/Sequence/Length/ ./Mus_musculus/Ensembl/GRCm38/Sequence/Length/
+aws s3 --no-sign-request --region eu-west-1 sync s3://ngi-igenomes/igenomes/Mus_musculus/Ensembl/GRCm38/Sequence/WholeGenomeFasta/ ./Mus_musculus/Ensembl/GRCm38/Sequence/WholeGenomeFasta/
+aws s3 --no-sign-request --region eu-west-1 sync s3://ngi-igenomes/igenomes/Mus_musculus/Ensembl/GRCm38/MouseGenomeProject/ ./Mus_musculus/Ensembl/GRCm38/MouseGenomeProject/
+aws s3 --no-sign-request --region eu-west-1 sync s3://ngi-igenomes/igenomes/Mus_musculus/Ensembl/GRCm38/Annotation/Control-FREEC ./Mus_musculus/Ensembl/GRCm38/Annotation/Control-FREEC/
+```
+
+### Downloading reference genome directly (GRCh37 and GRCm38 example)
+
+Download the reference genome of choice for example from [https://support.illumina.com/sequencing/sequencing_software/igenome.html](https://support.illumina.com/sequencing/sequencing_software/igenome.html) and extract the downloaded archive
+
+```
+wget http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/Ensembl/GRCh37/Homo_sapiens_Ensembl_GRCh37.tar.gz
+tar -xzvf Homo_sapiens_Ensembl_GRCh37.tar.gz
+```
+
 ### Customize config files
 
 In order to use the downloaded reference genome, the config files in the sarek pipeline must be adjusted
@@ -79,7 +91,7 @@ For example, to use and specify a custom config with the name 'umcu_grch37'<br>
 #### Create custom config file
 
 First we create a conf_custom subfolder in the sarek folder where the custom configs will be stored<br>
-Next in that folder we create a new file the name 'umcu_grch37.config' with the following contents<br>
+Next in that folder we create a new file the name 'umcu_grch37.config' with the following contents, explanations are added in the config file<br>
 
 ```
 //Profile config names for nf-core/configs
@@ -88,10 +100,12 @@ params {
   config_profile_contact = 'Firstname Lastname'
   config_profile_url = 'https://www.umcutrecht.nl/'
 
+  // When a reference is not yet downloaded it will be downloaded and saved
   save_reference = true
 
   // illumina iGenomes reference file paths on UMCU HPC
   igenomes_base = '/hpc/ubec/resources/igenomes/'
+  // genome used in this config
   genome = 'GRCh37'
 
   //keep mapped bams by default (preferable in case pipeline needs to be rerun)
@@ -164,6 +178,40 @@ Add the following line to that section in order to tell sarek where to find the 
 umcu_grch37         { includeConfig 'conf_custom/umcu_grch37.config' }
 ```
 This tells sarek that the config can be found in the 'conf_custom' subfolder and has the filename 'umcu_grch37.config'
+
+#### (i)genomes.config
+
+The (i)genomes config contains all the locations of the various resources used, this is the list of options and which tools use them
+
+ * ac_loci & ac_loci_gc<br>ascat<br>
+ * bwa<br>bwa<br>
+ * chr_dir & chr_len<br>control-freec<br>
+ * dbsnp & dbsnp_index<br>BQSR, haplotypecaller, controlfreec<br>
+ * germline_resource & germline_resource<br>mutect2<br>
+ * intervals<br>paralellisation<br>
+ * known_indels & known_indels_index<br>BQSR<br>
+ * mappability<br>control-freec<br>
+ * snpeff_db<br>snpEff annotate<br>
+ * species<br>vep<br>
+ * vep_cache_version<br>vep
+
+### Manually download singularity images
+While sarek can download required images automatically this can sometimes cause issues (for example due to space or permission limitations), if this is the case the images can be pulled manually as follows
+
+GRCh37
+```
+singularity pull --name nfcore-sarekvep-2.7.GRCh37.img docker://nfcore/sarekvep:2.7.GRCh37
+singularity pull --name nfcore-sareksnpeff-2.7.GRCh37.img docker://nfcore/sareksnpeff:2.7.GRCh37
+```
+
+## Configure Nextflow
+To do...
+
+## Configure processes
+To do...
+
+## Modify code
+To do...
 
 ## Available tools
 * ASCAT<br>
