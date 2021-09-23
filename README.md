@@ -15,7 +15,8 @@ https://nf-co.re/sarek
 5. [Configure Nextflow](#configure-nextflow)
 6. [Configure processes](#configure-processes)
 7. [Modify code](#modify-code)
-8. [Available tools](#available-tools)
+8. [Running the pipeline](#running-the-pipeline)
+9. [Available tools](#available-tools)
 
 ## Install Nextflow
 
@@ -44,7 +45,10 @@ It is also possible to use specific local genome resources.
 This way is the preferred way as the sarek igenomes.config is based on these genomes, when using custom genomes one has to modify the genomes.config file (found in the conf/ subfolder from sarek) accordingly.<br>
 
 Download the reference genome of choice from https://ewels.github.io/AWS-iGenomes/<br><br>
-For Genome -> Source -> Build -> Type choose:<br>
+For:<br>
+Genome -> Source -> Build -> Type<br>
+<br>
+choose:<br>
 Homo_Sapiens -> GATK -> GRCh37
 
 Set up AWS for ad-hoc usage using guix
@@ -524,6 +528,67 @@ with:
 ```
       ${GLR} \
 ```
+
+## Running the pipeline
+
+Extended information on using sarek can be found at: https://nf-co.re/sarek/usage
+
+The Sarek pipeline can be started from a number of steps, defined by the --step parameter. Some of these steps require additional tools to be set. Most of these steps require a tsv file as input, only the mapping step also accepts a folder containing a single germline sample fastq folder. When running the Sarek pipeline it will also automatically generate these TSV files for all and each individual sample. The exact format of the TSV file depends on the starting step.
+
+Sarek can be started from any of these steps:
+
+### Mapping
+```
+--input <fastqs.tsv> --step mapping
+```
+The mapping TSV file should contain the columns:
+```
+subject sex status sample lane fastq1 fastq2
+```
+Example:
+```
+SUBJECT_ID	XX	0	SAMPLE_ID	1	/samples/normal1_1.fastq.gz
+SUBJECT_ID	XX	0	SAMPLE_ID	2	/samples/normal2_1.fastq.gz
+SUBJECT_ID	XX	0	SAMPLE_ID	3	/samples/normal3_1.fastq.gz
+```
+
+### Recalibrate
+```
+--input <bams.tsv> --step recalibrate
+```
+The recalibrate TSV file should contain the following columns:
+```
+subject sex status sample bam bai recaltable
+```
+### variant_calling
+```
+--input <bams.tsv> --step variant_calling
+```
+The variant_calling TSV file should contain the following columns:
+```
+subject sex status sample bam bai
+```
+### ControlFREEC
+```
+--input <bams.tsv> --step ControlREEC
+```
+The Control-FREEC TSV file should contain the following columns:
+```
+subject sex status sample bam bai
+```
+
+Note! The original sarek pipeline uses mpileup files for control-FREEC, this has been modified to accept .bam files as the mpileup files are extremely large and this will lead to issues when processing many (WGS) samples.
+### Annotate
+```
+--input <input.vcfs> --step annotate
+```
+Annotate accepts a sorted vcf file as input, multiple files can be specified using global paths and by enclosing the input in quotes.
+
+Example:
+```
+--step annotate --input "results/VariantCalling/*/{HaplotypeCaller,Manta,Mutect2,Strelka,TIDDIT}/*.vcf.gz"
+```
+
 ## Available tools
 * ASCAT<br>
 https://github.com/VanLoo-lab/ascat<br><br>
