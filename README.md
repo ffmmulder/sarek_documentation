@@ -200,9 +200,9 @@ The (i)genomes config contains all the locations of the various resources used, 
  * species<br>vep<br>
  * vep_cache_version<br>vep
 
-### NOTES
+### Notes
 
-Sometimes Control-FREEC can give issues due to an incompatible chr_len file, resulting in empty output. The fix is to adjust chr_length file (<genome>.len) to incl 'chr' in chr names, needed for controlfreec to work. Otherwise all reads are ignored.
+Sometimes Control-FREEC can give issues due to an incompatible chr_len file, resulting in empty output. The fix is to adjust chr_length file, \<genome\>.len, to incl 'chr' in chr names, needed for controlfreec to work. Otherwise all reads are ignored.
 
 ```
 #head -24 used to only include all chr up to and incl Y, adjust as desired
@@ -221,7 +221,7 @@ singularity pull --name nfcore-sareksnpeff-2.7.GRCh37.img docker://nfcore/sareks
 #### NOTE
 When pulling singularity images results in 'out of space' errors one needs to properly set SINGLUARITY_CACHEDIR (and SINGULARITY_TMPDIR,SINGULARITY_LOCALCACHEDIR ?). See  https://ubccr.freshdesk.com/support/solutions/articles/13000065620-singularity-build-error-no-space-left-on-device for details.
 
-  ## Configure Nextflow
+## Configure Nextflow
 To do...
 
 ## Configure processes
@@ -600,6 +600,35 @@ Annotate accepts a sorted vcf file as input, multiple files can be specified usi
 Example:
 ```
 --step annotate --input "results/VariantCalling/*/{HaplotypeCaller,Manta,Mutect2,Strelka,TIDDIT}/*.vcf.gz"
+```
+
+### Executing the pipeline
+
+The following command can be used to actually run the sarek pipeline:
+
+GRCh37 exome:
+```
+/hpc/ubec/tools/nextflow_20.10.0/nextflow run /hpc/ubec/projects/sarek/sarek/main.nf \
+-profile umcu_grch37 \
+--project exome_test \
+--input /hpc/ubec/projects/sarek/exome_test/TSV/NA18505.tsv \
+--step mapping \
+--outdir /hpc/ubec/projects/sarek/exome_test/output \
+-w /hpc/ubec/projects/sarek/exome_test/output/work \
+-resume
+```
+
+GRCm38 Mouse:
+This starts at the mapping step, using the umcu_grcm38 custom profile. The tools specified in --tools are executed.
+```
+/hpc/ubec/tools/nextflow_20.10.0/nextflow run /hpc/ubec/projects/sarek/sarek/main.nf \
+-profile umcu_grcm38 \
+--input /hpc/ubec/projects/sarek/test_runs/mouse_arne/input/normal_tumor.tsv \
+--step mapping \
+--tools cnvkit,freebayes,haplotypecaller,manta,mpileup,mutect2,snpeff,strelka,tiddit,msisensor,vep,merge \
+--outdir /hpc/ubec/projects/sarek/test_runs/mouse_arne/output \
+-w /hpc/ubec/projects/sarek/test_runs/mouse_arne/output/work \
+-resume
 ```
 
 ## Available tools
