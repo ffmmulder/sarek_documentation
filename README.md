@@ -17,6 +17,7 @@ https://nf-co.re/sarek
 7. [Modify code](#modify-code)
 8. [Running the pipeline](#running-the-pipeline)
 9. [Available tools](#available-tools)
+10. [Test run](#test-run)
 
 ## Install Nextflow
 
@@ -199,6 +200,15 @@ The (i)genomes config contains all the locations of the various resources used, 
  * species<br>vep<br>
  * vep_cache_version<br>vep
 
+### NOTES
+
+Sometimes Control-FREEC can give issues due to an incompatible chr_len file, resulting in empty output. The fix is to adjust chr_length file (<genome>.len) to incl 'chr' in chr names, needed for controlfreec to work. Otherwise all reads are ignored.
+
+```
+#head -24 used to only include all chr up to and incl Y, adjust as desired
+awk '{print $1"\tchr"$1"\t"$2'} <genome>.fa.fai | head -24> <genome>.len
+```
+
 ### Manually download singularity images
 While sarek can download required images automatically this can sometimes cause issues (for example due to space or permission limitations), if this is the case the images can be pulled manually as follows
 
@@ -208,7 +218,10 @@ singularity pull --name nfcore-sarekvep-2.7.GRCh37.img docker://nfcore/sarekvep:
 singularity pull --name nfcore-sareksnpeff-2.7.GRCh37.img docker://nfcore/sareksnpeff:2.7.GRCh37
 ```
 
-## Configure Nextflow
+#### NOTE
+When pulling singularity images results in 'out of space' errors one needs to properly set SINGLUARITY_CACHEDIR (and SINGULARITY_TMPDIR,SINGULARITY_LOCALCACHEDIR ?). See  https://ubccr.freshdesk.com/support/solutions/articles/13000065620-singularity-build-error-no-space-left-on-device for details.
+
+  ## Configure Nextflow
 To do...
 
 ## Configure processes
@@ -643,3 +656,11 @@ https://github.com/Ensembl/ensembl-vep<br><br>
 (Variant Effect Predictor) predicts the functional effects of genomic variants.
 
 *	Merge ???<br>
+  
+## Test Run
+  
+Execute the following in order to setup and do a testrun with the pipeline
+
+```
+cp -av /hpc/cog_bioinf/ubec/useq/processed_data/external/REN5302/input/REN5302_1/09-06576/*.fastq.gz /hpc/cog_bioinf/ubec/users/flip/pipelines/sarek_test/input/single_sample_fastq/
+```
