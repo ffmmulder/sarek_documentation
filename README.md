@@ -486,7 +486,7 @@ Add the following line:
 params.vep_genome = params.genome && ('vep' in tools || 'merge' in tools) ? params.genomes[params.genome].vep_genome ?: null : null
 ```
 
-In the process VEPmerge {}, replace the following line:
+In the processes VEP {} and VEPmerge {}, replace the following line:
 ```
     genome = params.genome == 'smallGRCh37' ? 'GRCh37' : params.genome
 ```
