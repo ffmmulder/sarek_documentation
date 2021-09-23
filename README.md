@@ -211,8 +211,319 @@ To do...
 To do...
 
 ## Modify code
-To do...
 
+Some modifications have been made to the sarek code in order to optimize usage or make it usable with the custom genome configs. The following changes are made to the main.nf file in the sarek folder:
+
+### Disable mpileup and use bam files for control-freec
+Line 125 and 135. Change occurences of:
+```
+case 'controlfreec': tsvPath = "${params.outdir}/VariantCalling/TSV/control-freec_mpileup.tsv"; break
+```
+to:
+```
+case 'controlfreec': tsvPath = "${params.outdir}/Preprocessing/TSV/recalibrated.tsv"; break
+```
+
+Line 149. Change:
+```case 'controlfreec': inputSample = extractPileup(tsvFile); break```
+to:
+```case 'controlfreec': inputSample = extractBam(tsvFile); break```
+
+In the section 
+```
+================================================================================
+                            GERMLINE VARIANT CALLING
+================================================================================
+```
+Line 1831. Change:
+```
+(bamMantaSingle, bamStrelkaSingle, bamTIDDIT, bamFreebayesSingleNoIntervals, bamHaplotypeCallerNoIntervals, bamRecalAll) = bam_recalibrated.into(6)
+```
+to:
+```
+(bamMantaSingle, bamStrelkaSingle, bamTIDDIT, bamFreebayesSingleNoIntervals, bamHaplotypeCallerNoIntervals, bamControlFREECSingle, bamRecalAll) = bam_recalibrated.into(7)
+```
+
+In the section 
+```
+================================================================================
+                             SOMATIC VARIANT CALLING
+================================================================================
+```
+Line 2212. Change
+```
+(pairBamManta, pairBamStrelka, pairBamStrelkaBP, pairBamMsisensor, pairBamCNVkit, pairBam) = pairBam.into(6)
+```
+to:
+```
+(pairBamManta, pairBamStrelka, pairBamStrelkaBP, pairBamMsisensor, pairBamCNVkit, pairBamControlFREEC, pairBam) = pairBam.into(7)
+```
+
+Line 3128-3189: Remove the entire section (starting from //STEP MPILEUP.1 up to but not including // STEP CONTROLFREEC.1 - CONTROLFREEC):
+```
+// STEP MPILEUP.1
+
+process Mpileup {
+    label 'cpus_1'
+    label 'memory_singleCPU_2_task'
+    
+    ...
+    
+    mpileupOut = mpileupOut.map {
+    idPatientNormal, idSampleNormal, mpileupOutNormal,
+    idSampleTumor, mpileupOutTumor ->
+    [idPatientNormal, idSampleNormal, idSampleTumor, mpileupOutNormal, mpileupOutTumor]
+}    
+```
+replace with:
+```
+bamControlFreeC = Channel.empty()
+if (step == 'controlfreec') bamControlFreeC = inputSample
+```
+
+Replace the entire processes ControlFREEC {} and ControlFREECSingle {}
+
+Replace 'process ControlFREEC {}' with:
+```
+process ControlFREEC {
+    label 'cpus_8'
+
+    tag "${idSampleTumor}_vs_${idSampleNormal}"
+
+    publishDir "${params.outdir}/VariantCalling/${idSampleTumor}_vs_${idSampleNormal}/Control-FREEC", mode: params.publish_dir_mode
+
+    input:
+        set idPatient, idSampleNormal, file(bamNormal), file(baiNormal), idSampleTumor, file(bamTumor), file(baiTumor) from pairBamControlFREEC
+        file(chrDir) from ch_chr_dir
+        file(mappability) from ch_mappability
+        file(chrLength) from ch_chr_length
+        file(dbsnp) from ch_dbsnp
+        file(dbsnpIndex) from ch_dbsnp_tbi
+        file(fasta) from ch_fasta
+        file(fastaFai) from ch_fai
+        file(targetBED) from ch_target_bed
+
+    output:
+        set idPatient, idSampleNormal, idSampleTumor, file("${idSampleTumor}.bam_CNVs"), file("${idSampleTumor}.bam_ratio.txt") into controlFreecViz
+        set file("*.bam*"), file("${idSampleTumor}_vs_${idSampleNormal}.config.txt") into controlFreecOut
+
+    when: 'controlfreec' in tools
+
+    script:
+    config = "${idSampleTumor}_vs_${idSampleNormal}.config.txt"
+    gender = genderMap[idPatient]
+    // Window has higher priority than coefficientOfVariation if both given
+    window = params.cf_window ? "window = ${params.cf_window}" : ""
+    coeffvar = params.cf_coeff ? "coefficientOfVariation = ${params.cf_coeff}" : ""
+    use_bed = params.target_bed ? "captureRegions = ${targetBED}" : ""
+    // This parameter makes Control-FREEC unstable (still in Beta according to the developers)
+    // so we disable it by setting it to its default value (it is disabled by default)
+    //min_subclone = params.target_bed ? "30" : "20"
+    min_subclone = 100
+    readCountThreshold = params.target_bed ? "50" : "10"
+    breakPointThreshold = params.target_bed ? "1.2" : "0.8"
+    breakPointType = params.target_bed ? "4" : "2"
+    mappabilitystr = params.mappability ? "gemMappabilityFile = \${PWD}/${mappability}" : ""
+
+    """
+    touch ${config}
+    echo "[general]" >> ${config}
+    echo "BedGraphOutput = TRUE" >> ${config}
+    echo "chrFiles = \${PWD}/${chrDir.fileName}" >> ${config}
+    echo "chrLenFile = \${PWD}/${chrLength.fileName}" >> ${config}
+    echo "forceGCcontentNormalization = 1" >> ${config}   #no_iap
+    echo "maxThreads = ${task.cpus}" >> ${config}
+    echo "minimalSubclonePresence = ${min_subclone}" >> ${config}
+    echo "ploidy = ${params.cf_ploidy}" >> ${config}
+    echo "sex = ${gender}" >> ${config}	#no_iap
+    echo "readCountThreshold = ${readCountThreshold}" >> ${config}	#no_iap
+    echo "breakPointThreshold = ${breakPointThreshold}" >> ${config}	#no_iap
+    echo "breakPointType = ${breakPointType}" >> ${config}	#no_iap
+    echo "${window}" >> ${config}
+    echo "${coeffvar}" >> ${config}	#no_iap
+    echo "${mappabilitystr}" >> ${config}
+    echo "" >> ${config}
+    
+    echo "[control]" >> ${config}
+    echo "inputFormat = BAM" >> ${config}
+    echo "mateFile = \${PWD}/${bamNormal}" >> ${config}
+    # echo "mateOrientation = FR" >> ${config}
+    echo "" >> ${config}
+
+    echo "[sample]" >> ${config}
+    echo "inputFormat = BAM" >> ${config}
+    echo "mateFile = \${PWD}/${bamTumor}" >> ${config}
+    # echo "mateOrientation = FR" >> ${config}
+    echo "" >> ${config}
+
+    echo "[target]" >> ${config}
+    echo "${use_bed}" >> ${config}
+
+    freec -conf ${config}
+
+    #output is created usig bam names, rename to sample name
+    for f in ${bamNormal}_*; do mv \${f} \${f/${bamNormal}/${idSampleNormal}.bam}; done
+    for f in ${bamTumor}_*; do mv \${f} \${f/${bamTumor}/${idSampleTumor}.bam}; done
+    """
+}
+```
+
+Replace process ControlFREECSingle {} with:
+```
+process ControlFREECSingle {
+    label 'cpus_8'
+
+    tag "${idSample}"
+
+    publishDir "${params.outdir}/VariantCalling/${idSample}/Control-FREEC", mode: params.publish_dir_mode
+
+    input:
+        set idPatient, idSample, file(bam), file(bai) from bamControlFREECSingle
+        file(chrDir) from ch_chr_dir
+        file(mappability) from ch_mappability
+        file(chrLength) from ch_chr_length
+        file(dbsnp) from ch_dbsnp
+        file(dbsnpIndex) from ch_dbsnp_tbi
+        file(fasta) from ch_fasta
+        file(fastaFai) from ch_fai
+        file(targetBED) from ch_target_bed
+
+    output:
+        set idPatient, idSample, file("${idSample}.bam_CNVs"), file("${idSample}.bam_ratio.txt") into controlFreecVizSingle
+        set file("*.bam*"), file("${idSample}.config.txt") into controlFreecOutSingle
+
+    when: 'controlfreec' in tools
+
+    script:
+    config = "${idSample}.config.txt"
+    gender = genderMap[idPatient]
+    // Window has higher priority than coefficientOfVariation if both given
+    window = params.cf_window ? "window = ${params.cf_window}" : ""
+    coeffvar = params.cf_coeff ? "coefficientOfVariation = ${params.cf_coeff}" : ""
+    use_bed = params.target_bed ? "captureRegions = ${targetBED}" : ""
+    // This parameter makes Control-FREEC unstable (still in Beta according to the developers)
+    // so we disable it by setting it to its default value (it is disabled by default)
+    //min_subclone = params.target_bed ? "30" : "20"
+    min_subclone = 100
+    readCountThreshold = params.target_bed ? "50" : "10"
+    breakPointThreshold = params.target_bed ? "1.2" : "0.8"
+    breakPointType = params.target_bed ? "4" : "2"
+    mappabilitystr = params.mappability ? "gemMappabilityFile = \${PWD}/${mappability}" : ""
+
+    """
+    touch ${config}
+    echo "[general]" >> ${config}
+    echo "BedGraphOutput = TRUE" >> ${config}
+    echo "chrFiles = \${PWD}/${chrDir.fileName}" >> ${config}
+    echo "chrLenFile = \${PWD}/${chrLength.fileName}" >> ${config}
+    echo "forceGCcontentNormalization = 1" >> ${config}
+    echo "maxThreads = ${task.cpus}" >> ${config}
+    echo "minimalSubclonePresence = ${min_subclone}" >> ${config}
+    echo "ploidy = ${params.cf_ploidy}" >> ${config}
+    echo "sex = ${gender}" >> ${config}
+    echo "readCountThreshold = ${readCountThreshold}" >> ${config}
+    echo "breakPointThreshold = ${breakPointThreshold}" >> ${config}
+    echo "breakPointType = ${breakPointType}" >> ${config}
+    echo "${window}" >> ${config}
+    echo "${coeffvar}" >> ${config}
+    echo "${mappabilitystr}" >> ${config}
+    echo "" >> ${config}
+
+    echo "[sample]" >> ${config}
+    echo "inputFormat = BAM" >> ${config}
+    echo "mateFile = \${PWD}/${bam}" >> ${config}
+    # echo "mateOrientation = FR" >> ${config}
+    echo "" >> ${config}
+
+    echo "[target]" >> ${config}
+    echo "${use_bed}" >> ${config}
+
+    freec -conf ${config}
+
+    #output is created usig bam names, rename to sample name
+    for f in ${bam}_*; do mv \${f} \${f/${bam}/${idSample}.bam}; done
+    """
+}
+```
+
+In the processes ControlFreecViz and ControlFreecVizSingle, remove the references to the bafTumor file
+
+process ControlFreecViz:
+```
+set idPatient, idSampleNormal, idSampleTumor, file(cnvTumor), file(ratioTumor), file(bafTumor) from controlFreecViz
+...
+cat /opt/conda/envs/nf-core-sarek-${workflow.manifest.version}/bin/makeGraph.R | R --slave --args 2 ${ratioTumor} ${bafTumor}
+```
+to:
+```
+set idPatient, idSampleNormal, idSampleTumor, file(cnvTumor), file(ratioTumor) from controlFreecViz
+...
+cat /opt/conda/envs/nf-core-sarek-${workflow.manifest.version}/bin/makeGraph.R | R --slave --args 1 ${ratioTumor}
+```
+
+likewise for process ControlFreecVizSingle:
+```
+set idPatient, idSampleTumor, file(cnvTumor), file(ratioTumor), file(bafTumor) from controlFreecVizSingle
+...
+cat /opt/conda/envs/nf-core-sarek-${workflow.manifest.version}/bin/makeGraph.R | R --slave --args 2 ${ratioTumor} ${bafTumor}
+```
+to:
+```
+set idPatient, idSampleTumor, file(cnvTumor), file(ratioTumor) from controlFreecVizSingle
+...
+cat /opt/conda/envs/nf-core-sarek-${workflow.manifest.version}/bin/makeGraph.R | R --slave --args 1 ${ratioTumor}
+```
+### Modifications for using VEP with custom genome names
+
+In the section 
+```
+================================================================================
+                               CHECKING REFERENCES
+================================================================================
+```
+Add the following line:
+```
+params.vep_genome = params.genome && ('vep' in tools || 'merge' in tools) ? params.genomes[params.genome].vep_genome ?: null : null
+```
+
+In the process VEPmerge {}, replace the following line:
+```
+    genome = params.genome == 'smallGRCh37' ? 'GRCh37' : params.genome
+```
+with:
+```
+    genome = (params.vep_genome ) ? params.vep_genome : params.genome
+```
+
+### Modification Mutect2 germline resource check and usage
+Underneath the following line:
+```
+if ('mutect2' in tools && !(params.pon)) log.warn "[nf-core/sarek] Mutect2 was requested, but as no panel of normals were given, results will not be optimal"
+```
+
+Add this line:
+```
+if ('mutect2' in tools && !(params.germline_resource)) log.warn "[nf-core/sarek] Mutect2 was requested, but as no germline resource was given, results will not be optimal"
+```
+
+In the process Mutect2 {}, below the line:
+```
+    PON = params.pon ? "--panel-of-normals ${pon}" : ""
+```
+
+add the following line:
+```
+    GLR = params.germline_resource ? "--germline-resource ${germlineResource}" : ""
+```
+
+and replace the line:
+```
+      ${GLR} \
+```
+with:
+```
+      --germline-resource ${germlineResource} \
+```
 ## Available tools
 * ASCAT<br>
 https://github.com/VanLoo-lab/ascat<br><br>
