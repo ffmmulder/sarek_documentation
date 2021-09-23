@@ -241,9 +241,9 @@ to:
 case 'controlfreec': tsvPath = "${params.outdir}/Preprocessing/TSV/recalibrated.tsv"; break
 ```
 
-Line 149. Change:
+Line 149. Change:<br>
 ```case 'controlfreec': inputSample = extractPileup(tsvFile); break```
-to:
+<br>to:<br>
 ```case 'controlfreec': inputSample = extractBam(tsvFile); break```
 
 In the section 
