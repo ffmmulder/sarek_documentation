@@ -23,6 +23,12 @@ https://nf-co.re/sarek
 
 Install the latest version of Nextfow (v20.40+ is needed for the latest v2.7.1 sarek release) using the [these instructions](https://www.nextflow.io/docs/latest/getstarted.html#installation)
 
+Use this command to create the nextflow executable in the current folder, either copy the resulting nextflow binary to a folder in your path, add this folder to your path or call the pipeline using the full path to the Nextflow executable.
+
+```
+curl -fsSL get.nextflow.io | bash
+```
+
 ## Install Singularity
 
 Singularity is most likely already available on the HPC, if not follow [these instructions](https://sylabs.io/guides/3.5/admin-guide/)
@@ -108,8 +114,14 @@ params {
   // When a reference is not yet downloaded it will be downloaded and saved
   save_reference = true
 
+  //When using your own custom genomes, set igenomes_ignore to true in order for sarek to not use igenomes resources
+  igenomes_ignore = true
   // illumina iGenomes reference file paths on UMCU HPC
-  igenomes_base = '/hpc/ubec/resources/igenomes/'
+  genomes_base = '/hpc/ubec/resources/igenomes/'
+  
+  //in case you wish to use igenomes use this to set igenomes base folder (and disable the igenomes_ignore=true + genomes_base lines)
+  //igenomes_base = '/hpc/ubec/resources/igenomes/'
+  
   // genome used in this config
   genome = 'GRCh37'
 
