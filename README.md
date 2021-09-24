@@ -17,7 +17,8 @@ https://nf-co.re/sarek
 7. [Modify code](#modify-code)
 8. [Running the pipeline](#running-the-pipeline)
 9. [Available tools](#available-tools)
-10. [Test run](#test-run)
+10. [Workflow](#workflow)
+11. [Test run](#test-run)
 
 ## Install Nextflow
 
@@ -727,7 +728,11 @@ https://github.com/Ensembl/ensembl-vep<br><br>
 (Variant Effect Predictor) predicts the functional effects of genomic variants.
 
 *	Merge ???<br>
-  
+
+## Workflow
+
+![GitHub Logo](/Sarek_pipeline_tools_workflow.jpg)
+
 ## Test Run
   
 Execute the following in order to setup and do a testrun with the pipeline
