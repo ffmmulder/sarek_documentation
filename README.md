@@ -102,9 +102,8 @@ For example, to use and specify a custom config with the name 'umcu_grch37'<br>
 #### Create custom config file
 
 First we create a conf_custom subfolder in the sarek folder where the custom configs will be stored<br>
-Next in that folder we create a new file the name 'umcu_grch37.config' with the following contents, explanations are added in the config file<br>
 
-In order to use custom genome resources one must set the following parameters:
+In order to use custom genome resources one must set the following parameters in the custom config file:
 ```
   //When using your own custom genomes, set igenomes_ignore to true in order for sarek to not use igenomes resources
   igenomes_ignore = true
@@ -112,6 +111,7 @@ In order to use custom genome resources one must set the following parameters:
   genomes_base = '/hpc/ubec/resources/genomes/'
 ```
 
+Below an example of a custom 'umcu_grch37.config' file, explanations are added in the config file<br>
 ```
 //Profile config names for nf-core/configs
 params {
