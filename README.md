@@ -186,7 +186,7 @@ This tells sarek that the config can be found in the 'conf_custom' subfolder and
 
 #### (i)genomes.config
 
-The (i)genomes config contains all the locations of the various resources used, this is the list of options and which tools use them
+The igenomes.config and genomes.config files can be found in the sarek//conf subfolder and contains all the locations of the various resources used. An overview of options and which tools use them
 
  * ac_loci & ac_loci_gc<br>ascat<br>
  * bwa<br>bwa<br>
@@ -199,6 +199,28 @@ The (i)genomes config contains all the locations of the various resources used, 
  * snpeff_db<br>snpEff annotate<br>
  * species<br>vep<br>
  * vep_cache_version<br>vep
+
+In order to add new genome resource, an entry to either the genomes.config (by default) or the igenomes.config must added. For example, this adds a GRCm38 entry to the genomes.config file:
+
+```
+'GRCm38' {
+        bwa                     = "${params.genomes_base}/bwa_index/v0.7.17/Mm_GRCm38_gatk_sorted.fasta.{amb,ann,bwt,pac,sa}"
+        chr_dir                 = "${params.genomes_base}/chr_files"
+        chr_length              = "${params.genomes_base}/Mm_GRCm38_gatk_sorted.len"
+        dbsnp                   = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/MouseGenomeProject/mgp.v5.merged.snps_all.dbSNP142.vcf.gz"
+        dbsnp_index             = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/MouseGenomeProject/mgp.v5.merged.snps_all.dbSNP142.vcf.gz.tbi"
+        dict                    = "${params.genomes_base}/Mm_GRCm38_gatk_sorted.dict"
+        fasta                   = "${params.genomes_base}/Mm_GRCm38_gatk_sorted.fasta"
+        fasta_fai               = "${params.genomes_base}/Mm_GRCm38_gatk_sorted.fasta.fai"
+        intervals                 = "${params.genomes_base}/Mm_GRCm38_gatk_sorted.interval_list"
+        known_indels            = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/MouseGenomeProject/mgp.v5.merged.indels.dbSNP142.normed.vcf.gz"
+        known_indels_index      = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/MouseGenomeProject/mgp.v5.merged.indels.dbSNP142.normed.vcf.gz.tbi"
+        mappability             = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/Annotation/Control-FREEC/GRCm38_68_mm10.gem""
+        snpeff_db               = 'GRCm38.99'
+        species                 = 'mouse'
+        vep_cache_version       = '99'
+    }
+```
 
 ### Notes
 
