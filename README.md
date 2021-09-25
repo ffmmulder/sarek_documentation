@@ -236,7 +236,7 @@ In order to add new genome resource, an entry to either the genomes.config (by d
         intervals                 = "${params.genomes_base}/Mm_GRCm38_gatk_sorted.interval_list"
         known_indels            = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/MouseGenomeProject/mgp.v5.merged.indels.dbSNP142.normed.vcf.gz"
         known_indels_index      = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/MouseGenomeProject/mgp.v5.merged.indels.dbSNP142.normed.vcf.gz.tbi"
-        mappability             = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/Annotation/Control-FREEC/GRCm38_68_mm10.gem""
+        mappability             = "/hpc/ubec/resources/tools/rnaseq-nf/genome_files/GRCm38/Annotation/Control-FREEC/GRCm38_68_mm10.gem"
         snpeff_db               = 'GRCm38.99'
         species                 = 'mouse'
         vep_cache_version       = '99'
