@@ -566,7 +566,7 @@ Add this line:
 if ('mutect2' in tools && !(params.germline_resource)) log.warn "[nf-core/sarek] Mutect2 was requested, but as no germline resource was given, results will not be optimal"
 ```
 
-In the process Mutect2 {}, below the line:
+In the process Mutect2 {} and Mutect2Single {}, below the line:
 ```
     PON = params.pon ? "--panel-of-normals ${pon}" : ""
 ```
