@@ -557,7 +557,18 @@ Add the following line underneat the // Annotation section (for example under ' 
 ```
   vep_genome = null // No custom genome name for VEP
 ```
-
+#### The following change must be made to nextflow_schema.json in the main nextflow folder! (Don't forget the comma seperator at the start)
+Add the following code in the "annotation" section (it can be added under the "vep_catche" entry:
+```
+    ,                
+    "vep_genome": {
+        "type": "string",
+        "default": "null",
+        "fa_icon": "fas fa-wrench",
+        "description": "Set name for VEP genome image base",
+        "hidden": true
+    }
+     
 ### Modification Mutect2 germline resource check and usage
 Underneath the following line:
 ```
