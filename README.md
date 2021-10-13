@@ -552,6 +552,11 @@ with:
 ```
     genome = (params.vep_genome ) ? params.vep_genome : params.genome
 ```
+#### The following change must be made to nextflow.config in the main nextflow folder!
+Add the following line underneat the // Annotation section (for example under '  vep_cache = null // No directory for VEP cache') :
+```
+  vep_genome = null // No custom genome name for VEP
+```
 
 ### Modification Mutect2 germline resource check and usage
 Underneath the following line:
