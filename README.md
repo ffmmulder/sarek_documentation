@@ -376,7 +376,7 @@ process ControlFREEC {
     window = params.cf_window ? "window = ${params.cf_window}" : ""
     coeffvar = params.cf_coeff ? "coefficientOfVariation = ${params.cf_coeff}" : ""
     use_bed = params.target_bed ? "captureRegions = ${targetBED}" : ""
-    // This parameter makes Control-FREEC unstable (still in Beta according to the developers)
+    // This parameter makes Control-FREEC unstable (still in Beta according to the developers)
     // so we disable it by setting it to its default value (it is disabled by default)
     //min_subclone = params.target_bed ? "30" : "20"
     min_subclone = 100
@@ -384,7 +384,8 @@ process ControlFREEC {
     breakPointThreshold = params.target_bed ? "1.2" : "0.8"
     breakPointType = params.target_bed ? "4" : "2"
     mappabilitystr = params.mappability ? "gemMappabilityFile = \${PWD}/${mappability}" : ""
-
+    contamination_adjustment = params.cf_contamination_adjustment ? "contaminationAdjustment = TRUE" : ""
+    contamination_value = params.cf_contamination ? "contamination = ${params.cf_contamination}" : ""
     """
     touch ${config}
     echo "[general]" >> ${config}
@@ -402,23 +403,21 @@ process ControlFREEC {
     echo "${window}" >> ${config}
     echo "${coeffvar}" >> ${config}	#no_iap
     echo "${mappabilitystr}" >> ${config}
-    echo "" >> ${config}
-    
+    echo "${contamination_adjustment}" >> ${config}
+    echo "${contamination_value}" >> ${config}
+    echo "" >> ${config}    
     echo "[control]" >> ${config}
     echo "inputFormat = BAM" >> ${config}
     echo "mateFile = \${PWD}/${bamNormal}" >> ${config}
     # echo "mateOrientation = FR" >> ${config}
     echo "" >> ${config}
-
     echo "[sample]" >> ${config}
     echo "inputFormat = BAM" >> ${config}
     echo "mateFile = \${PWD}/${bamTumor}" >> ${config}
     # echo "mateOrientation = FR" >> ${config}
     echo "" >> ${config}
-
     echo "[target]" >> ${config}
     echo "${use_bed}" >> ${config}
-
     freec -conf ${config}
 
     #output is created usig bam names, rename to sample name
@@ -461,7 +460,7 @@ process ControlFREECSingle {
     window = params.cf_window ? "window = ${params.cf_window}" : ""
     coeffvar = params.cf_coeff ? "coefficientOfVariation = ${params.cf_coeff}" : ""
     use_bed = params.target_bed ? "captureRegions = ${targetBED}" : ""
-    // This parameter makes Control-FREEC unstable (still in Beta according to the developers)
+    // This parameter makes Control-FREEC unstable (still in Beta according to the developers)
     // so we disable it by setting it to its default value (it is disabled by default)
     //min_subclone = params.target_bed ? "30" : "20"
     min_subclone = 100
@@ -469,7 +468,8 @@ process ControlFREECSingle {
     breakPointThreshold = params.target_bed ? "1.2" : "0.8"
     breakPointType = params.target_bed ? "4" : "2"
     mappabilitystr = params.mappability ? "gemMappabilityFile = \${PWD}/${mappability}" : ""
-
+    contamination_adjustment = params.cf_contamination_adjustment ? "contaminationAdjustment = TRUE" : ""
+    contamination_value = params.cf_contamination ? "contamination = ${params.cf_contamination}" : ""
     """
     touch ${config}
     echo "[general]" >> ${config}
@@ -487,19 +487,17 @@ process ControlFREECSingle {
     echo "${window}" >> ${config}
     echo "${coeffvar}" >> ${config}
     echo "${mappabilitystr}" >> ${config}
+    echo "${contamination_adjustment}" >> ${config}
+    echo "${contamination_value}" >> ${config}
     echo "" >> ${config}
-
     echo "[sample]" >> ${config}
     echo "inputFormat = BAM" >> ${config}
     echo "mateFile = \${PWD}/${bam}" >> ${config}
     # echo "mateOrientation = FR" >> ${config}
     echo "" >> ${config}
-
     echo "[target]" >> ${config}
     echo "${use_bed}" >> ${config}
-
     freec -conf ${config}
-
     #output is created usig bam names, rename to sample name
     for f in ${bam}_*; do mv \${f} \${f/${bam}/${idSample}.bam}; done
     """
