@@ -568,9 +568,28 @@ Add the following code in the "annotation" section (it can be added under the "v
         "description": "Set name for VEP genome image base",
         "hidden": true
     }
-     
+```
+
+In the config used with the custom genome, the following entry must be created to be able to pull the correct VEP and SnpEff images:
+
+```
+process {
+   withName:Snpeff {
+     container = 'nfcore/sareksnpeff:2.7.1.GRCh38'
+     maxForks = 1
+   }
+   withLabel:VEP {
+     container = 'nfcore/sarekvep:2.7.1.GRCh38'
+     maxForks = 1
+   }
+}
+```
+
+If the process section already exists, just add the content to it.
+
 ### Modification Mutect2 germline resource check and usage
 Underneath the following line:
+
 ```
 if ('mutect2' in tools && !(params.pon)) log.warn "[nf-core/sarek] Mutect2 was requested, but as no panel of normals were given, results will not be optimal"
 ```
