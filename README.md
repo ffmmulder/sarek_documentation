@@ -245,12 +245,20 @@ In order to add new genome resource, an entry to either the genomes.config (by d
 
 ### Notes
 
-Sometimes Control-FREEC can give issues due to an incompatible chr_len file, resulting in empty output. The fix is to adjust chr_length file, \<genome\>.len, to incl 'chr' in chr names, needed for controlfreec to work. Otherwise all reads are ignored.
+Sometimes Control-FREEC can give issues due to an incompatible chr_len file, resulting in empty output. The fix is to adjust chr_length file, \<genome\>.len, to incl 'chr' in chr names for the 2nd column and no 'chr' in the first column , needed for controlfreec to work. Otherwise all reads are ignored.
 
+For example, when the fasta has no chr prefix, generate the .len as follows:
 ```
 #head -24 used to only include all chr up to and incl Y, adjust as desired
 awk '{print $1"\tchr"$1"\t"$2'} <genome>.fa.fai | head -24> <genome>.len
 ```
+
+When the fasta DOES have a chr prefix, generate the .len as follows:
+```
+#head -24 used to only include all chr up to and incl Y, adjust as desired
+awk '{gsub("chr", "", $1); print $1"\tchr"$1"\t"$2'} <genome>.fa.fai | head -24> <genome>.len
+```
+
 
 ### Manually download singularity images
 While sarek can download required images automatically this can sometimes cause issues (for example due to space or permission limitations), if this is the case the images can be pulled manually as follows
