@@ -625,6 +625,157 @@ with:
 ```
       ${GLR} \
 ```
+### Add custom VCF annotation
+
+In the file 'nextflow.config', under the //Annotation section, add the following lines:
+
+```
+  custom_vcf = false // No Custom VCF file
+  custom_vcf_tbi = false // No Custom VCF index file 
+  custom_vcf_fields = null // No Custom VCF fields
+```
+In the file 'nextflow_schema.json', in the section '"annotation": {...}' add the following lines:
+
+```
+                "custom_vcf": {
+                    "type": "string",
+                    "default": "null",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to custom vcf annotation file",
+                    "hidden": true
+                },                
+                "custom_vcf_tbi": {
+                    "type": "string",
+                    "default": "null",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to custom vcf annotation index file",
+                    "hidden": true
+                },  
+                "custom_vcf_fields": {
+                    "type": "string",
+                    "default": "null",
+                    "fa_icon": "fas fa-wrench",
+                    "description": "Fields to include from custom VCF",
+                    "hidden": true
+                }
+```
+
+In the file 'main.nf' add the following lines...
+
+Under '// Check parameters':
+
+```
+if ('customvcf' in tools && (!params.custom_vcf_fields || !params.custom_vcf)) exit 1, 'Please specify both --custom_vcf and --custom_vcf_fields, when using "customvcf" annotation tool'
+if ('customvcf' in tools && (!hasExtension(params.custom_vcf, "vcf.gz") || hasExtension(params.input, "vcf"))) exit 1, 'CustomVCF requires bzipped input and annotation files'
+```
+
+Under '// Initialize channels with files based on params':
+
+```
+ch_custom_vcf = params.custom_vcf ? Channel.value(file(params.custom_vcf)) : "null"
+ch_custom_vcf_tbi = params.custom_vcf_tbi ? Channel.value(file(params.custom_vcf_tbi)) : "null"
+```
+
+Under '// Header log info' in the 'PRINT PARAMETER SUMMARY'
+
+```
+if ('customvcf' in tools) {
+    summary['CustomVCF'] = "Options"
+    if (params.custom_vcf) summary['CustomVCF'] = params.custom_vcf
+    if (params.custom_vcf_tbi) summary['CustomVCF'] = params.custom_vcf_tbi
+    if (params.custom_vcf_fields) summary['CustomVCFFields'] = params.custom_vcf_fields
+}
+```
+
+Change the line:
+```
+(vcfSnpeff, vcfVep) = vcfAnnotation.into(2)
+```
+to
+```
+(vcfSnpeff, vcfVep, vcfCustom) = vcfAnnotation.into(3)
+```
+
+Above the section 'MultiQC' and below the process CompressVCFvep (and more specifically the line '
+compressVCFOutVEP = compressVCFOutVEP.dump(tag:'VCF')' ), add the following block:
+
+```
+//STEP 3. CUSTOM VCF ANNOTATION
+process VCFCustom {
+    tag "${idSample} - ${variantCaller} - ${vcf}"
+
+    publishDir params.outdir, mode: params.publish_dir_mode, saveAs: {
+        if (it == "${reducedVCF}_customVCF.ann.vcf") null
+        else "Reports/${idSample}/customVCF/${it}"
+    }
+
+    input:
+        set variantCaller, idSample, file(vcf) from vcfCustom
+        file(custom_vcf) from ch_custom_vcf
+
+    output:
+        set variantCaller, idSample, file("${reducedVCF}_customVCF.ann.vcf") into customVCF
+
+    when: 'customvcf' in tools
+
+    script:
+    reducedVCF = reduceVCF(vcf.fileName)
+    vcffields = params.custom_vcf_fields
+
+    """
+    mkdir ${reducedVCF}
+    bcftools annotate \
+        -o ${reducedVCF}_customVCF.ann.vcf.gz \
+        -a ${custom_vcf} \
+        -O z \
+        -c ${vcffields} \
+        ${vcf}
+    tabix ${reducedVCF}_customVCF.ann.vcf.gz
+        
+    rm -rf ${reducedVCF}
+    """
+}
+
+
+process VCFCustomMerge {
+    tag "${idSample} - ${variantCaller} - ${vcf}"
+
+    publishDir params.outdir, mode: params.publish_dir_mode, saveAs: {
+        if (it == "${reducedVCF}_customVCF.ann.vcf") null
+        else "Reports/${idSample}/customVCF/${it}"
+    }
+
+    input:
+        set variantCaller, idSample, file(vcf), file(idx)  from compressVCFOutVEP
+        file(custom_vcf) from ch_custom_vcf
+
+    output:
+        set variantCaller, idSample, file("${reducedVCF}_customVCF.ann.vcf") into customVCFmerge
+
+    when: 'customvcf' in tools && 'merge' in tools
+
+    script:
+    reducedVCF = reduceVCF(vcf.fileName)
+    vcffields = params.custom_vcf_fields
+
+    """
+    mkdir ${reducedVCF}
+    bcftools annotate \
+        -o ${reducedVCF}_customVCF.ann.vcf.gz \
+        -a ${custom_vcf} \
+        -O z \
+        -c ${vcffields} \
+        ${vcf}
+    tabix ${reducedVCF}_customVCF.ann.vcf.gz
+        
+    rm -rf ${reducedVCF}
+    """
+}
+
+compressVCFOutCustom = customVCF.mix(customVCFmerge)
+
+compressVCFOutCustom = compressVCFOutCustom.dump(tag:'VCF')
+```
 
 ## Running the pipeline
 
@@ -675,6 +826,7 @@ subject sex status sample bam bai
 ```
 
 Note! The original sarek pipeline uses mpileup files for control-FREEC, this has been modified to accept .bam files as the mpileup files are extremely large and this will lead to issues when processing many (WGS) samples.
+
 ### Annotate
 ```
 --input <input.vcfs> --step annotate
@@ -685,6 +837,8 @@ Example:
 ```
 --step annotate --input "results/VariantCalling/*/{HaplotypeCaller,Manta,Mutect2,Strelka,TIDDIT}/*.vcf.gz"
 ```
+
+
 
 ### Executing the pipeline
 
